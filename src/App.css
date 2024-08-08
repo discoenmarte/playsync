@@ -1,0 +1,405 @@
+/* App.css */
+body {
+  font-family: 'Arial', sans-serif;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(to bottom, #121212, #282828);
+  color: white;
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  text-align: center;
+}
+
+.App-header {
+  font-size: 3rem;
+  font-weight: bold;
+  margin: 1rem 0;
+  color: #1DB954;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  padding: 0 1rem;
+}
+
+.logout-button {
+  position: absolute;
+  right: 1rem;
+}
+
+.button {
+  background-color: #1DB954;
+  border: none;
+  color: white;
+  padding: 1rem 2rem;
+  font-size: 1.5rem;
+  border-radius: 50px;
+  cursor: pointer;
+  margin-right: 1rem; /* Add margin to keep space between buttons */
+  transition: background-color 0.3s, transform 0.3s;
+  white-space: nowrap; /* Prevent text from wrapping */
+}
+
+.button:hover {
+  background-color: #1ED760;
+  transform: scale(1.05);
+}
+
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #282c34;
+}
+
+.auth-box {
+  background: #3b3f45;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 300px;
+  text-align: center;
+  color: white;
+}
+
+.auth-input-wrapper {
+  margin-bottom: 20px;
+}
+
+.auth-input-wrapper input {
+  width: calc(100% - 20px);
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: #202020;
+  color: white;
+}
+
+.auth-button-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.auth-button-wrapper button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  background-color: #61dafb;
+  color: #282c34;
+  cursor: pointer;
+}
+
+.auth-button-wrapper button:hover {
+  background-color: #21a1f1;
+}
+
+.playlists-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.search-bar {
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #202020;
+  background-color: #202020;
+  color: white;
+  border-radius: 4px;
+  transition: box-shadow 0.3s ease-in-out;
+  outline: none;
+}
+
+.search-bar:focus {
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.6);
+}
+
+.auth-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.auth-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 20px;
+  cursor: pointer;
+  color: white;
+}
+
+.auth-box-centered {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 300px;  /* Adjust the width as needed */
+  text-align: center;
+}
+
+.auth-input-wrapper,
+.auth-button-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.auth-box input {
+  width: calc(100% - 2rem);
+  box-sizing: border-box; /* Ensure input padding doesn't affect overall width */
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  border: 1px solid #1DB954;
+  border-radius: 5px;
+  background: #404040;
+  color: white;
+}
+
+.auth-box button {
+  width: calc(100% - 2rem);
+  box-sizing: border-box; /* Ensure button padding doesn't affect overall width */
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  border-radius: 5px;
+  background-color: #1DB954;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.auth-box button:hover {
+  background-color: #1ED760;
+}
+
+.error {
+  color: #ff4d4d;
+  margin-top: 1rem;
+}
+
+/* Filter Container styles */
+.filter-container {
+  margin: 15px 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.filter-input {
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  transition: box-shadow 0.3s ease-in-out;
+  outline: none;
+  width: 48%;
+  background-color: #202020;
+  color: white;
+}
+
+.filter-input:focus {
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.6);
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8); /* Match the standard background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #3b3f45; /* Change modal background to match others */
+  padding: 20px;
+  border-radius: 8px; /* Match border radius */
+  position: relative;
+  max-width: 500px;
+  width: 100%;
+  color: white; /* Ensure text is white */
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 20px;
+  cursor: pointer;
+  color: white; /* Ensure close button is visible */
+}
+
+.valid-playlists-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.valid-playlist-item {
+  margin-bottom: 10px;
+}
+
+.valid-playlist-item h3 {
+  margin: 0;
+}
+
+.progress-bar-container {
+  width: 100%;
+  background-color: #f3f3f3;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-bar {
+  height: 20px;
+  background-color: #4caf50;
+  text-align: center;
+  line-height: 20px;
+  color: white;
+}
+
+.first-migrated-playlist {
+  margin-top: 20px;
+}
+
+.first-migrated-playlist h3 {
+  margin-bottom: 10px;
+}
+
+.auth-container, .auth-overlay {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.auth-box {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.auth-input-wrapper {
+  margin-bottom: 16px;
+}
+
+.auth-button-wrapper {
+  text-align: right;
+}
+
+.history-modal, .auth-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.history-modal-content {
+  background: white;
+  margin: 5% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+}
+
+.history-close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.history-close:hover, 
+.history-close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.table-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-table th, .history-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.history-table th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #4caf50;
+  color: white;
+}
+
+.truncated-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  cursor: pointer;
+  position: relative;
+}
+
+/* Truncated cell hover improvements */
+.truncated-cell,
+.microtruncated-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;  /* Adjust width as needed */
+  cursor: pointer;
+  position: relative;
+}
+
+.truncated-cell:hover::after,
+.microtruncated-cell:hover::after {
+  content: attr(title);
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.8); /* Use a semi-transparent black background */
+  color: #fff; /* Ensure text color is white */
+  border-radius: 5px; /* Add some border radius for rounded corners */
+  padding: 5px;
+  white-space: normal;
+  z-index: 10;
+  max-width: 300px;
+  width: auto;
+  left: 50%; /* Center it horizontally */
+  top: 100%; /* Position it just below the text */
+  transform: translateX(-50%);
+  margin-top: 8px; /* Add some space between the text and tooltip */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Add a slight shadow for better readability */
+}
