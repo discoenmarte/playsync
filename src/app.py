@@ -34,7 +34,7 @@ app = Flask(__name__, static_folder='./build', static_url_path='/')
 app.secret_key = 'supersecretkey'  # Change this to a more secure key in production
 
 
-uri = "mongodb+srv://juanrengifo912:4212@cluster0.6ajkb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0&tsl=true"
+uri = "mongodb+srv://juanrengifo912:4212@cluster0.6ajkb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0&tls=true"
 # Create a new client and connect to the server
 client = MongoClient(uri, server_api=ServerApi('1'))
 # Send a ping to confirm a successful connection
