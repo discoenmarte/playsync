@@ -4,7 +4,6 @@ asgiref==3.4.1
 async-timeout==4.0.3
 bcrypt==3.1.7
 blinker==1.8.2
-Brlapi==0.7.0
 certifi==2021.10.8
 chardet==3.0.4
 charset-normalizer==2.0.7
