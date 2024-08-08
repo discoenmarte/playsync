@@ -34,9 +34,9 @@ app = Flask(__name__, static_folder='./build', static_url_path='/')
 app.secret_key = 'supersecretkey'  # Change this to a more secure key in production
 
 
-uri = "mongodb+srv://juanrengifo912:4212@cluster0.6ajkb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0&tls=true"
+uri = "mongodb+srv://juanrengifo912:4212@cluster0.6ajkb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 # Create a new client and connect to the server
-client = MongoClient(uri, server_api=ServerApi('1'))
+client = MongoClient(uri, serverSelectionTimeoutMS=5000)
 # Send a ping to confirm a successful connection
 try:
     client.admin.command('ping')
@@ -1240,5 +1240,4 @@ def logout():
     return jsonify({"message": "Logged out successfully"}), 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
