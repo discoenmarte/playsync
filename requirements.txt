@@ -6,3 +6,5 @@ Flask_PyMongo==2.3.0
 spotipy==2.24.0
 ytmusicapi==1.8.0
 pillow==10.4.0
+gunicorn
+pymongo[srv]
