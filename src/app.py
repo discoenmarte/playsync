@@ -693,6 +693,7 @@ def authorize():
 
 @app.route('/spotify-callback')
 def spotify_callback():
+    global sess
     if 'error' in request.args:
         return jsonify({"error": request.args['error']})
 
@@ -814,12 +815,12 @@ def youtube_callback():
         user_profile = sess.get("spotify", {})
         spotify_username = sess["spotify"]["user_id"] if "user_id" in sess["spotify"] else ""
 
-        
+        print("THE SPORTI USERNAME:", spotify_username)
 
         user_id = session.get('user_id')
         if user_id:
             store_sess(user_id, session['spotify_username'], sess)
-            
+
         if user_id and spotify_username:
             print("Storing session data in MongoDB")
             store_sess(user_id, spotify_username, sess)
