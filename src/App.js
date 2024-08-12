@@ -8,7 +8,6 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format } from 'date-fns'; // Import the format function from date-fns
 
-
 const App = () => {
   const [authorized, setAuthorized] = useState(false);
   const [playlists, setPlaylists] = useState([]);
@@ -68,7 +67,9 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
     if (authorized) {
       const fetchUserData = async () => {
         try {
-          const response = await fetch('/api/user-id');
+          const response = await fetch('https://playsync-3.onrender.com/api/user-id', {
+            credentials: 'include'
+          });
           if (response.ok) {
             const data = await response.json();
             setUserId(data.user_id);
@@ -91,12 +92,13 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
 
   const handleLogin = async () => {
     try {
-      const response = await fetch('/login', {
+      const response = await fetch('https://playsync-3.onrender.com/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ username, password }),
+        credentials: 'include'  // Asegúrate de incluir las credenciales
       });
       if (response.ok) {
         const data = await response.json();
@@ -115,12 +117,13 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
 
   const handleRegistration = async () => {
     try {
-      const response = await fetch('/register', {
+      const response = await fetch('https://playsync-3.onrender.com/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ username, password }),
+        credentials: 'include'  // Asegúrate de incluir las credenciales
       });
       if (response.ok) {
         await handleLogin();
@@ -136,7 +139,10 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
 
   const handleLogout = async () => {
     try {
-      await fetch('/logout', { method: 'POST' });
+      await fetch('https://playsync-3.onrender.com/logout', { 
+        method: 'POST',
+        credentials: 'include'  // Asegúrate de incluir las credenciales
+      });
       setAuthorized(false);
       setPlaylists([]);
       setManualPlaylistSelections([]);
@@ -156,7 +162,9 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
 
   const fetchPlaylists = async () => {
     try {
-      const response = await fetch('/api/playlists');
+      const response = await fetch('https://playsync-3.onrender.com/api/playlists', {
+        credentials: 'include'  // Asegúrate de incluir las credenciales
+      });
       if (response.ok) {
         const data = await response.json();
         if (data && data.items) {
@@ -183,7 +191,9 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
     if (isSyncing) {
       const interval = setInterval(async () => {
         try {
-          const response = await fetch('/api/sync/progress');
+          const response = await fetch('https://playsync-3.onrender.com/api/sync/progress', {
+            credentials: 'include'  // Asegúrate de incluir las credenciales
+          });
           const data = await response.json();
           setSyncProgressYouTube(data.progress_youtube);
           setSyncTotalYouTube(data.total_youtube);
@@ -209,29 +219,35 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
   }, [isSyncing]);
 
   const handleAuthorize = () => {
-    window.location.href = 'http://localhost:5000/authorize';
+    window.location.href = 'https://playsync-3.onrender.com/authorize';
   };
 
   const handleSync = async () => {
     setIsSyncing(true);
 
     try {
-      await fetch('/api/select-playlists/manual', {
+      await fetch('https://playsync-3.onrender.com/api/select-playlists/manual', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ playlists: manualPlaylistSelections }),
+        credentials: 'include'  // Asegúrate de incluir las credenciales
       });
 
-      const response = await fetch('/api/sync', { method: 'POST' });
+      const response = await fetch('https://playsync-3.onrender.com/api/sync', { 
+        method: 'POST',
+        credentials: 'include'  // Asegúrate de incluir las credenciales
+      });
       const data = await response.json();
       if (data.status === "Sync already in progress") {
         toast.info("Sync already in progress");
       } else {
         const interval = setInterval(async () => {
           try {
-            const statusResponse = await fetch('/api/sync/progress');
+            const statusResponse = await fetch('https://playsync-3.onrender.com/api/sync/progress', {
+              credentials: 'include'  // Asegúrate de incluir las credenciales
+            });
             const statusData = await statusResponse.json();
             setProgressYoutube(statusData.progress_youtube);
             setProgressTidal(statusData.progress_tidal);
@@ -263,7 +279,9 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
 
   const handleShowErrorLogs = async () => {
     try {
-      const response = await fetch('/api/error-logs');
+      const response = await fetch('https://playsync-3.onrender.com/api/error-logs', {
+        credentials: 'include'  // Asegúrate de incluir las credenciales
+      });
       const data = await response.json();
       setErrorLogs(data);
     } catch (error) {
@@ -274,7 +292,9 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
 
   const handleShowHistory = async () => {
     try {
-      const response = await fetch('/api/migration-history');
+      const response = await fetch('https://playsync-3.onrender.com/api/migration-history', {
+        credentials: 'include'  // Asegúrate de incluir las credenciales
+      });
       const data = await response.json();
       setHistory(data.reverse());
     } catch (error) {
@@ -316,7 +336,9 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
       return;
     }
     try {
-      const response = await fetch(`/api/sess/${userId}?spotify_username=`);
+      const response = await fetch(`https://playsync-3.onrender.com/api/sess/${userId}?spotify_username=`, {
+        credentials: 'include'  // Asegúrate de incluir las credenciales
+      });
       const data = await response.json();
       setAuthorizedAccounts(data);
     } catch (error) {
@@ -327,7 +349,9 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
 
   const handleFetchUserPlaylists = async (spotifyUsername) => {
     try {
-      const response = await fetch(`/api/fetch-playlists/${userId}/${spotifyUsername}`);
+      const response = await fetch(`https://playsync-3.onrender.com/api/fetch-playlists/${userId}/${spotifyUsername}`, {
+        credentials: 'include'  // Asegúrate de incluir las credenciales
+      });
       if (response.ok) {
         const data = await response.json();
         setPlaylists(data.names);
@@ -341,7 +365,10 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
 
   const handleRemoveUserSession = async (spotifyUsername) => {
     try {
-      const response = await fetch(`/api/remove-user/${userId}/${spotifyUsername}`, { method: 'DELETE' });
+      const response = await fetch(`https://playsync-3.onrender.com/api/remove-user/${userId}/${spotifyUsername}`, { 
+        method: 'DELETE',
+        credentials: 'include'  // Asegúrate de incluir las credenciales
+      });
       if (response.ok) {
         const data = await response.json();
         setAuthorizedAccounts(authorizedAccounts.filter(account => account.spotify_username !== spotifyUsername));
@@ -384,7 +411,7 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
   };
 
   const handleFetchValidations = async () => {
-    const url = new URL('/api/validate-playlists', window.location.origin);
+    const url = new URL('https://playsync-3.onrender.com/api/validate-playlists', window.location.origin);
     // Add the filter parameters to the URL
     url.searchParams.append('description_length', filterDescriptionLength);
     if (filterUsername) {
@@ -400,7 +427,9 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
       url.searchParams.append('end_date', filterEndDate.toISOString());
     }
   
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      credentials: 'include'  // Asegúrate de incluir las credenciales
+    });
     const data = await response.json();
   
     // Extract and set distinct owners
@@ -491,319 +520,317 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
             )}
           </div>
           {isSyncing && (
-                        <>
-                        <div className="progress-bar-container">
-                          <div className="progress-bar" style={{ width: totalYoutube ? `${(progressYoutube / totalYoutube) * 100}%` : '0%' }}>
-                            <span className="progress-label">YouTube</span>
-                          </div>
-                        </div>
-                        <div className="progress-bar-container">
-                          <div className="progress-bar" style={{ width: totalTidal ? `${(progressTidal / totalTidal) * 100}%` : '0%' }}>
-                            <span className="progress-label">Tidal</span>
-                          </div>
-                        </div>
-                        <div className="progress-bar-container">
-                          <div className="progress-bar" style={{ width: totalSoundCloud ? `${(progressSoundCloud / totalSoundCloud) * 100}%` : '0%' }}>
-                            <span className="progress-label">SoundCloud</span>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    {showHistory && (
-  <div className="history-modal">
-    <div className="history-modal-content">
-      <span className="history-close" onClick={handleCloseHistory}>&times;</span>
-      <h2>Migration History</h2>
-      <div className="filter-container">
-        <input
-          type="text"
-          placeholder="Filter by username"
-          value={filterUsername}
-          onChange={e => setFilterUsername(e.target.value)}
-          className="filter-input"
-        />
-        <select
-          className="filter-input"
-          value={filterPlaylistName}
-          onChange={e => setFilterPlaylistName(e.target.value)}
-        >
-          <option value="">All Playlists</option>
-          {Array.from(new Set(history.map(event => event.playlist_name))).map((playlistName, index) => (
-            <option key={index} value={playlistName}>{playlistName}</option>
-          ))}
-        </select>
-        <div className="date-picker-container">
-          <DatePicker
-            selected={startDate}
-            onChange={date => setStartDate(date)}
-            selectsStart
-            startDate={startDate}
-            endDate={endDate}
-            dateFormat="yyyy/MM/dd"
-            className="filter-input"
-            placeholderText="Start Date"
-          />
-          <DatePicker
-            selected={endDate}
-            onChange={date => setEndDate(date)}
-            selectsEnd
-            startDate={startDate}
-            endDate={endDate}
-            dateFormat="yyyy/MM/dd"
-            className="filter-input"
-            placeholderText="End Date"
-          />
-        </div>
-      </div>
-      <div className="table-container">
-        <table className="history-table">
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Timestamp</th>
-              <th>Playlist Name</th>
-              <th>Profile Name</th>
-              <th>Platform</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedHistory.map((event, index) => (
-              <tr key={index}>
-                <td>{event.username || 'N/A'}</td>
-                <td>{formatDate(event.timestamp)}</td>
-                <td className="truncated-cell" title={event.playlist_name}>
-                  <a href={`https://open.spotify.com/playlist/${event.playlist_id}`} target="_blank" rel="noopener noreferrer">
-                    {event.playlist_name}
-                  </a>
-                </td>
-                <td className="truncated-cell" title={event.profile_name}>{event.profile_name}</td>
-                <td>{event.platform}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-)}
-                    {showErrorLogs && (
-  <div className="history-modal">
-    <div className="history-modal-content">
-      <span className="history-close" onClick={handleCloseErrorLogs}>&times;</span>
-      <h2>Error Logs</h2>
-      <div className="table-container">
-        <table className="history-table">
-          <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>Message</th>
-              <th>Platform</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedErrorLogs.map((log, index) => (
-              <tr key={index}>
-                <td>{formatDate(log.timestamp)}</td>
-                <td className="truncated-cell" title={log.message}>{log.message}</td>
-                <td>{log.platform || 'N/A'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-)}
-                    {showAuthorizedAccounts && (
-                      <div className="history-modal">
-                        <div className="history-modal-content">
-                          <span className="history-close" onClick={handleCloseAuthorizedAccounts}>&times;</span>
-                          <h2>Authorized Spotify Accounts</h2>
-                          <div className="table-container">
-                            <table className="history-table">
-                              <thead>
-                                <tr>
-                                  <th>Spotify Username</th>
-                                  <th>Timestamp</th>
-                                  <th>Actions</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {authorizedAccounts.map((account, index) => (
-                                  <tr key={index}>
-                                    <td>{account.spotify_username}</td>
-                                    <td>{account.timestamp}</td>
-                                    <td>
-                                      <button className="button" onClick={() => handleFetchUserPlaylists(account.spotify_username)}>
-                                        Fetch Playlists
-                                      </button>
-                                      <button className="button" onClick={() => handleRemoveUserSession(account.spotify_username)}>
-                                        Remove
-                                      </button>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {showValidationModal && (
-  <div className="history-modal">
-    <div className="history-modal-content">
-      <span className="history-close" onClick={handleCloseValidationModal}>&times;</span>
-      <h2>Validated Playlists</h2>
-
-      <div className="filter-container">
-  <select
-    value={filterUsername}
-    onChange={e => setFilterUsername(e.target.value)}
-    className="filter-input"
-  >
-    <option value="">All Owners</option>
-    {owners.map((owner, index) => (
-      <option key={index} value={owner}>{owner}</option>
-    ))}
-  </select>
-  <input
-    type="text"
-    placeholder="Filter by playlist name"
-    value={modalSearchTerm}
-    onChange={handleModalSearchChange}
-    className="filter-input"
-  />
-  <input
-    type="number"
-    placeholder="Description length"
-    value={filterDescriptionLength}
-    onChange={e => setFilterDescriptionLength(e.target.value)}
-    className="filter-input"
-  />
-  <select
-    value={filterPlaylistId}
-    onChange={(e) => {
-      console.log("Selected Playlist ID:", e.target.value); // Debugging log
-      setFilterPlaylistId(e.target.value);
-    }}
-    className="filter-input"
-  >
-    <option value="">Select Playlist A</option>
-    {playlists.map((playlist) => (
-      <option key={playlist.id} value={playlist.id}>{playlist.name}</option>
-    ))}
-  </select>
-  <div className="date-picker-container">
-    <DatePicker
-      selected={filterStartDate}
-      onChange={date => setFilterStartDate(date)}
-      selectsStart
-      startDate={filterStartDate}
-      endDate={filterEndDate}
-      dateFormat="yyyy/MM/dd"
-      className="filter-input"
-      placeholderText="Start Date"
-    />
-    <DatePicker
-      selected={filterEndDate}
-      onChange={date => setFilterEndDate(date)}
-      selectsEnd
-      startDate={filterStartDate}
-      endDate={filterEndDate}
-      dateFormat="yyyy/MM/dd"
-      className="filter-input"
-      placeholderText="End Date"
-    />
-  </div>
-  <button onClick={handleFetchValidations} className="button">Apply Filters</button>
-</div>
-
-      <div className="table-container">
-        {filteredModalPlaylists(validatedPlaylists.valid_playlists).length > 0 && (
-          <>
-            <h3>Valid Playlists</h3>
-            <table className="history-table">
-              <thead>
-                <tr>
-                  <th>Owner</th>
-                  <th>Name</th>
-                  <th>Description</th>
-                  <th>Visibility</th>
-                  <th>Cover Image</th>
-                  <th>Tracks</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredModalPlaylists(validatedPlaylists.valid_playlists).map((playlist, index) => (
-                  <tr key={index}>
-                    <td className="truncated-cell" title={playlist.owner.display_name}>{playlist.owner.display_name}</td>
-                    <td className="truncated-cell" title={playlist.name}><a href={playlist.external_urls.spotify} target="_blank" rel="noopener noreferrer">{playlist.name}</a></td>
-                    <td className="truncated-cell" title={playlist.description}>{playlist.description}</td>
-                    <td>{playlist.public ? "Public" : "Private"}</td>
-                    <td>{playlist.images && playlist.images.length > 0 ? <img src={playlist.images[0].url} alt="Cover" style={{ width: '50px' }} /> : 'No Image'}</td>
-                    <td>{playlist.tracks.total}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
-        )}
-        {filteredModalPlaylists(validatedPlaylists.invalid_playlists).length > 0 && (
-          <>
-            <h3>Invalid Playlists</h3>
-            <table className="history-table">
-              <thead>
-                <tr>
-                  <th>Owner</th>
-                  <th>Name</th>
-                  <th>Description</th>
-                  <th>Visibility</th>
-                  <th>Cover Image</th>
-                  <th>Tracks</th>
-                  <th>Reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredModalPlaylists(validatedPlaylists.invalid_playlists).map((playlist, index) => (
-                  <tr key={index}>
-                    <td className="truncated-cell" title={playlist.owner.display_name}>{playlist.owner.display_name}</td>
-                    <td className="truncated-cell" title={playlist.name}><a href={playlist.external_urls.spotify} target="_blank" rel="noopener noreferrer">{playlist.name}</a></td>
-                    <td className="truncated-cell" title={playlist.description}>{playlist.description}</td>
-                    <td>{playlist.public ? "Public" : "Private"}</td>
-                    <td>{playlist.images && playlist.images.length > 0 ? <img src={playlist.images[0].url} alt="Cover" style={{ width: '50px' }} /> : 'No Image'}</td>
-                    <td>{playlist.tracks ? playlist.tracks.total : 0}</td>
-                    <td className="truncated-cell" title={playlist.reason}>{playlist.reason}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
-        )}
-      </div>
-    </div>
-  </div>
-)}
-                    
+            <>
+              <div className="progress-bar-container">
+                <div className="progress-bar" style={{ width: totalYoutube ? `${(progressYoutube / totalYoutube) * 100}%` : '0%' }}>
+                  <span className="progress-label">YouTube</span>
+                </div>
+              </div>
+              <div className="progress-bar-container">
+                <div className="progress-bar" style={{ width: totalTidal ? `${(progressTidal / totalTidal) * 100}%` : '0%' }}>
+                  <span className="progress-label">Tidal</span>
+                </div>
+              </div>
+              <div className="progress-bar-container">
+                <div className="progress-bar" style={{ width: totalSoundCloud ? `${(progressSoundCloud / totalSoundCloud) * 100}%` : '0%' }}>
+                  <span className="progress-label">SoundCloud</span>
+                </div>
+              </div>
+            </>
+          )}
+          {showHistory && (
+            <div className="history-modal">
+              <div className="history-modal-content">
+                <span className="history-close" onClick={handleCloseHistory}>&times;</span>
+                <h2>Migration History</h2>
+                <div className="filter-container">
+                  <input
+                    type="text"
+                    placeholder="Filter by username"
+                    value={filterUsername}
+                    onChange={e => setFilterUsername(e.target.value)}
+                    className="filter-input"
+                  />
+                  <select
+                    className="filter-input"
+                    value={filterPlaylistName}
+                    onChange={e => setFilterPlaylistName(e.target.value)}
+                  >
+                    <option value="">All Playlists</option>
+                    {Array.from(new Set(history.map(event => event.playlist_name))).map((playlistName, index) => (
+                      <option key={index} value={playlistName}>{playlistName}</option>
+                    ))}
+                  </select>
+                  <div className="date-picker-container">
+                    <DatePicker
+                      selected={startDate}
+                      onChange={date => setStartDate(date)}
+                      selectsStart
+                      startDate={startDate}
+                      endDate={endDate}
+                      dateFormat="yyyy/MM/dd"
+                      className="filter-input"
+                      placeholderText="Start Date"
+                    />
+                    <DatePicker
+                      selected={endDate}
+                      onChange={date => setEndDate(date)}
+                      selectsEnd
+                      startDate={startDate}
+                      endDate={endDate}
+                      dateFormat="yyyy/MM/dd"
+                      className="filter-input"
+                      placeholderText="End Date"
+                    />
                   </div>
                 </div>
-                {isRegistering && (
-                  <div className="auth-overlay">
-                    <div className="auth-box">
-                      <span className="auth-close" onClick={handleCloseRegisterModal}>&times;</span>
-                      <h2>Register</h2>
-                      <div className="auth-input-wrapper">
-                        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" />
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" />
-                      </div>
-                      <div className="auth-button-wrapper">
-                        <button onClick={handleRegistration}>Register</button>
-                      </div>
-                      {authError && <p className="error">{authError}</p>}
-                    </div>
-                  </div>
-                )}
+                <div className="table-container">
+                  <table className="history-table">
+                    <thead>
+                      <tr>
+                        <th>Username</th>
+                        <th>Timestamp</th>
+                        <th>Playlist Name</th>
+                        <th>Profile Name</th>
+                        <th>Platform</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedHistory.map((event, index) => (
+                        <tr key={index}>
+                          <td>{event.username || 'N/A'}</td>
+                          <td>{formatDate(event.timestamp)}</td>
+                          <td className="truncated-cell" title={event.playlist_name}>
+                            <a href={`https://open.spotify.com/playlist/${event.playlist_id}`} target="_blank" rel="noopener noreferrer">
+                              {event.playlist_name}
+                            </a>
+                          </td>
+                          <td className="truncated-cell" title={event.profile_name}>{event.profile_name}</td>
+                          <td>{event.platform}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            );
-          };
-          
-          export default App;
+            </div>
+          )}
+          {showErrorLogs && (
+            <div className="history-modal">
+              <div className="history-modal-content">
+                <span className="history-close" onClick={handleCloseErrorLogs}>&times;</span>
+                <h2>Error Logs</h2>
+                <div className="table-container">
+                  <table className="history-table">
+                    <thead>
+                      <tr>
+                        <th>Timestamp</th>
+                        <th>Message</th>
+                        <th>Platform</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedErrorLogs.map((log, index) => (
+                        <tr key={index}>
+                          <td>{formatDate(log.timestamp)}</td>
+                          <td className="truncated-cell" title={log.message}>{log.message}</td>
+                          <td>{log.platform || 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+          {showAuthorizedAccounts && (
+            <div className="history-modal">
+              <div className="history-modal-content">
+                <span className="history-close" onClick={handleCloseAuthorizedAccounts}>&times;</span>
+                <h2>Authorized Spotify Accounts</h2>
+                <div className="table-container">
+                  <table className="history-table">
+                    <thead>
+                      <tr>
+                        <th>Spotify Username</th>
+                        <th>Timestamp</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {authorizedAccounts.map((account, index) => (
+                        <tr key={index}>
+                          <td>{account.spotify_username}</td>
+                          <td>{account.timestamp}</td>
+                          <td>
+                            <button className="button" onClick={() => handleFetchUserPlaylists(account.spotify_username)}>
+                              Fetch Playlists
+                            </button>
+                            <button className="button" onClick={() => handleRemoveUserSession(account.spotify_username)}>
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+          {showValidationModal && (
+            <div className="history-modal">
+              <div className="history-modal-content">
+                <span className="history-close" onClick={handleCloseValidationModal}>&times;</span>
+                <h2>Validated Playlists</h2>
+                <div className="filter-container">
+                  <select
+                    value={filterUsername}
+                    onChange={e => setFilterUsername(e.target.value)}
+                    className="filter-input"
+                  >
+                    <option value="">All Owners</option>
+                    {owners.map((owner, index) => (
+                      <option key={index} value={owner}>{owner}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Filter by playlist name"
+                    value={modalSearchTerm}
+                    onChange={handleModalSearchChange}
+                    className="filter-input"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Description length"
+                    value={filterDescriptionLength}
+                    onChange={e => setFilterDescriptionLength(e.target.value)}
+                    className="filter-input"
+                  />
+                  <select
+                    value={filterPlaylistId}
+                    onChange={(e) => {
+                      console.log("Selected Playlist ID:", e.target.value); // Debugging log
+                      setFilterPlaylistId(e.target.value);
+                    }}
+                    className="filter-input"
+                  >
+                    <option value="">Select Playlist A</option>
+                    {playlists.map((playlist) => (
+                      <option key={playlist.id} value={playlist.id}>{playlist.name}</option>
+                    ))}
+                  </select>
+                  <div className="date-picker-container">
+                    <DatePicker
+                      selected={filterStartDate}
+                      onChange={date => setFilterStartDate(date)}
+                      selectsStart
+                      startDate={filterStartDate}
+                      endDate={filterEndDate}
+                      dateFormat="yyyy/MM/dd"
+                      className="filter-input"
+                      placeholderText="Start Date"
+                    />
+                    <DatePicker
+                      selected={filterEndDate}
+                      onChange={date => setFilterEndDate(date)}
+                      selectsEnd
+                      startDate={filterStartDate}
+                      endDate={filterEndDate}
+                      dateFormat="yyyy/MM/dd"
+                      className="filter-input"
+                      placeholderText="End Date"
+                    />
+                  </div>
+                  <button onClick={handleFetchValidations} className="button">Apply Filters</button>
+                </div>
+                <div className="table-container">
+                  {filteredModalPlaylists(validatedPlaylists.valid_playlists).length > 0 && (
+                    <>
+                      <h3>Valid Playlists</h3>
+                      <table className="history-table">
+                        <thead>
+                          <tr>
+                            <th>Owner</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Visibility</th>
+                            <th>Cover Image</th>
+                            <th>Tracks</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredModalPlaylists(validatedPlaylists.valid_playlists).map((playlist, index) => (
+                            <tr key={index}>
+                              <td className="truncated-cell" title={playlist.owner.display_name}>{playlist.owner.display_name}</td>
+                              <td className="truncated-cell"
+ title={playlist.name}><a href={playlist.external_urls.spotify} target="_blank" rel="noopener noreferrer">{playlist.name}</a></td>
+                              <td className="truncated-cell" title={playlist.description}>{playlist.description}</td>
+                              <td>{playlist.public ? "Public" : "Private"}</td>
+                              <td>{playlist.images && playlist.images.length > 0 ? <img src={playlist.images[0].url} alt="Cover" style={{ width: '50px' }} /> : 'No Image'}</td>
+                              <td>{playlist.tracks.total}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </>
+                  )}
+                  {filteredModalPlaylists(validatedPlaylists.invalid_playlists).length > 0 && (
+                    <>
+                      <h3>Invalid Playlists</h3>
+                      <table className="history-table">
+                        <thead>
+                          <tr>
+                            <th>Owner</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Visibility</th>
+                            <th>Cover Image</th>
+                            <th>Tracks</th>
+                            <th>Reason</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredModalPlaylists(validatedPlaylists.invalid_playlists).map((playlist, index) => (
+                            <tr key={index}>
+                              <td className="truncated-cell" title={playlist.owner.display_name}>{playlist.owner.display_name}</td>
+                              <td className="truncated-cell" title={playlist.name}><a href={playlist.external_urls.spotify} target="_blank" rel="noopener noreferrer">{playlist.name}</a></td>
+                              <td className="truncated-cell" title={playlist.description}>{playlist.description}</td>
+                              <td>{playlist.public ? "Public" : "Private"}</td>
+                              <td>{playlist.images && playlist.images.length > 0 ? <img src={playlist.images[0].url} alt="Cover" style={{ width: '50px' }} /> : 'No Image'}</td>
+                              <td>{playlist.tracks ? playlist.tracks.total : 0}</td>
+                              <td className="truncated-cell" title={playlist.reason}>{playlist.reason}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      {isRegistering && (
+        <div className="auth-overlay">
+          <div className="auth-box">
+            <span className="auth-close" onClick={handleCloseRegisterModal}>&times;</span>
+            <h2>Register</h2>
+            <div className="auth-input-wrapper">
+              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" />
+            </div>
+            <div className="auth-button-wrapper">
+              <button onClick={handleRegistration}>Register</button>
+            </div>
+            {authError && <p className="error">{authError}</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
