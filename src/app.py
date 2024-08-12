@@ -39,6 +39,8 @@ CORS(app, supports_credentials=True, resources={
     r"/*": {"origins": "http://localhost:3000"}
 })
 
+# Configura el tiempo de duración de la sesión
+app.permanent_session_lifetime = timedelta(days=7)
 
 uri = "mongodb+srv://juanrengifo912:4212@cluster0.6ajkb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
@@ -1211,10 +1213,9 @@ def register():
 
 username = ""
 
-# User login route
 @app.route('/login', methods=['POST'])
 def login():
-    global sess, username
+    global sess
     data = request.json
     username = data.get("username")
     password = data.get("password")
@@ -1226,6 +1227,7 @@ def login():
     if not user or not check_password_hash(user["password"], password):
         return jsonify({"error": "Invalid credentials"}), 401
 
+    session.permanent = True
     session['user_id'] = str(user["_id"])
     session['username'] = username
     sess['username'] = username
