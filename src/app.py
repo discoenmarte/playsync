@@ -153,6 +153,7 @@ def fetch_all_playlists():
     if not user_id:
         return jsonify({"error": "User not logged in"}), 401
 
+    print("SESS", sess)
     spotify_sess = sess.get('spotify', {})
     access_token = spotify_sess.get('access_token')
     if not access_token:
