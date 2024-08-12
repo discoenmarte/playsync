@@ -1,6 +1,7 @@
 from flask import Flask, redirect, url_for, request, jsonify, session, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
+from flask_cors import CORS
 import urllib
 import requests
 import threading
@@ -32,6 +33,11 @@ credentials_collection = db['credentials']  # New collection for storing credent
 
 app = Flask(__name__, static_folder='./build', static_url_path='/')
 app.secret_key = 'supersecretkey'  # Change this to a more secure key in production
+
+# Enable CORS for all routes
+CORS(app, supports_credentials=True, resources={
+    r"/*": {"origins": "http://localhost:3000"}
+})
 
 
 uri = "mongodb+srv://juanrengifo912:4212@cluster0.6ajkb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
