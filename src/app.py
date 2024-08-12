@@ -36,7 +36,7 @@ app.secret_key = 'supersecretkey'  # Change this to a more secure key in product
 
 uri = "mongodb+srv://juanrengifo912:4212@cluster0.6ajkb.mongodb.net/?retryWrites=true&w=majority&ssl=false&connectTimeoutMS=30000&socketTimeoutMS=30000"
 # Create a new client and connect to the server
-client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+client = MongoClient(uri)
 # Send a ping to confirm a successful connection
 try:
     client.admin.command('ping')
