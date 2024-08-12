@@ -810,13 +810,14 @@ def youtube_callback():
 
         with open('youtube_oauth.json', 'w') as fp:
             json.dump(youtube_oauth, fp)
-    return redirect('/authorize-tidal')
+    return redirect(f'{FRONTEND_HOST}/playlists') #redirect('/authorize-tidal')
 
 @app.route('/authorize-tidal')
 def authorize_tidal():
     global sess
     tidal_session = tidalapi.Session()
     login, future = tidal_session.login_oauth()
+    print(login)
     import webbrowser as wb
     link = "https://" + login.verification_uri_complete
     wb.open_new_tab(link)
