@@ -806,8 +806,7 @@ def youtube_callback():
         }
         sess["youtube"] = {"oauth": youtube_oauth}
         
-        if user_id:
-            store_sess(user_id, session['spotify_username'], sess)
+        
 
         with open('youtube_oauth.json', 'w') as fp:
             json.dump(youtube_oauth, fp)
@@ -815,7 +814,12 @@ def youtube_callback():
         user_profile = sess.get("spotify", {})
         spotify_username = sess["spotify"]["user_id"] if "user_id" in sess["spotify"] else ""
 
+        
+
         user_id = session.get('user_id')
+        if user_id:
+            store_sess(user_id, session['spotify_username'], sess)
+            
         if user_id and spotify_username:
             print("Storing session data in MongoDB")
             store_sess(user_id, spotify_username, sess)
