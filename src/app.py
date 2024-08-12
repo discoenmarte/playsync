@@ -778,6 +778,7 @@ def youtube_authorize():
 
 @app.route('/youtube-callback')
 def youtube_callback():
+    global sess
     if 'error' in request.args:
         return jsonify({"error": request.args['error']})
     if 'code' in request.args:
@@ -810,6 +811,16 @@ def youtube_callback():
 
         with open('youtube_oauth.json', 'w') as fp:
             json.dump(youtube_oauth, fp)
+
+        user_profile = sess.get("spotify", {})
+        spotify_username = sess["spotify"]["user_id"] if "user_id" in sess["spotify"] else ""
+
+        user_id = session.get('user_id')
+        if user_id and spotify_username:
+            print("Storing session data in MongoDB")
+            store_sess(user_id, spotify_username, sess)
+        else:
+            print("User ID or Spotify username missing, cannot store session data")
     return redirect(f'{FRONTEND_HOST}/playlists') #redirect('/authorize-tidal')
 
 @app.route('/authorize-tidal')
