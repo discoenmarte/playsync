@@ -90,9 +90,11 @@ def encode_image_to_base64(image_content):
 
 
 
+
+
 def search_song(song_name, artist_name):
     ytmusic = YTMusic()
-    search_results = ytmusic.search(f"{song_name} {artist_name}", filter="songs")
+    search_results = ytmusic.search(f">> {song_name} {artist_name}", filter="songs")
     if search_results:
         # Return the videoId of the first result
         return search_results[0]['videoId']
@@ -104,6 +106,43 @@ def get_existing_playlist_id(ytmusic, playlist_name):
         if playlist['title'].lower() == playlist_name.lower():
             return playlist['playlistId']
     return None
+
+
+
+
+
+def create_or_update_youtube_playlist(playlist_json, oauth_path):
+    print(">> YTMUSIC")
+    ytmusic = YTMusic(oauth_path)
+    playlist_name = playlist_json['name']
+    playlist_description = playlist_json['description']
+    visibility = 'PUBLIC' if playlist_json.get('visibility', 'public').lower() == 'public' else 'PRIVATE'
+    
+    # Check if the playlist already exists
+    playlist_id = get_existing_playlist_id(ytmusic, playlist_name)
+
+    if playlist_id:
+        print(f">> Updating existing playlist: {playlist_name}")
+    else:
+        print(f">> Creating new playlist: {playlist_name}")
+        playlist_id = ytmusic.create_playlist(playlist_name, playlist_description, privacy_status=visibility)
+
+    # Add songs to the playlist
+    track_ids = []
+    for track in playlist_json['tracks']:
+        song_name, artist_name = track.split(' by ')
+        search_results = ytmusic.search(f">> {song_name} {artist_name}", filter='songs')
+        if search_results:
+            video_id = search_results[0]['videoId']
+            track_ids.append(video_id)
+
+    if track_ids:
+        ytmusic.add_playlist_items(playlist_id, track_ids)
+        print(f">> Playlist '{playlist_name}' updated successfully with {len(track_ids)} tracks.")
+    else:
+        print("No tracks were added to the playlist.")
+
+    return playlist_id
 
 
 def download_image(image_url):
@@ -193,52 +232,7 @@ def create_or_update_soundcloud_playlist(playlist_data, auth_tokens):
             raise Exception(f"Error updating playlist: {update_response.text}")
         print("Playlist updated successfully")
 
-def create_or_update_youtube_playlist(playlist_json, oauth_path):
-    print(">> YTMUSIC")
-    ytmusic = YTMusic(oauth_path)
-    playlist_name = playlist_json['name']
-    playlist_description = playlist_json['description']
-    visibility = 'PUBLIC' if playlist_json.get('visibility', 'public').lower() == 'public' else 'PRIVATE'
-    
-    # Check if the playlist already exists
-    playlist_id = get_existing_playlist_id(ytmusic, playlist_name)
-    
-    if playlist_id:
-        print(f">> Updating existing playlist: {playlist_name}")
-    else:
-        print(f">> Creating new playlist: {playlist_name}")
-        playlist_id = ytmusic.create_playlist(playlist_name, playlist_description, privacy_status=visibility)
-    
-    # Add songs to the playlist
-    track_ids = []
-    for track in playlist_json['tracks']:
-        song_name, artist_name = track.split(' by ')
-        search_results = ytmusic.search(f"{song_name} {artist_name}", filter='songs')
-        
-        if search_results:
-            def priority(result):
-                title = result['title'].lower()
-                if 'official video' in title or 'vídeo oficial' in title:
-                    return 1
-                elif 'lyric video' in title or 'official lyric video' in title or 'official video lyric' in title:
-                    return 2
-                elif 'visualizer' in title:
-                    return 3
-                else:
-                    return 4
-            
-            # Sort search results by priority
-            search_results.sort(key=priority)
-            video_id = search_results[0]['videoId']
-            track_ids.append(video_id)
-    
-    if track_ids:
-        ytmusic.add_playlist_items(playlist_id, track_ids)
-        print(f">> Playlist '{playlist_name}' updated successfully with {len(track_ids)} tracks.")
-    else:
-        print("No tracks were added to the playlist.")
-    
-    return playlist_id
+
 
 
 
@@ -338,19 +332,20 @@ playlist_data = {
     ]
 }
 
-def update(playlist_data, tidal_headers):
-    create_or_update_youtube_playlist(playlist_data, "oauth.json")
-    create_or_update_tidal_playlist(playlist_data, tidal_headers)
+def update(playlist_data):#, tidal_headers):
+    create_or_update_youtube_playlist(playlist_data, "youtube_oauth.json")
+    #create_or_update_tidal_playlist(playlist_data, tidal_headers)
     
 #https://open.spotify.com/playlist/5LkuQ6ApkqtchiyZzBmh9u?si=35974d4c42d54061
 
 def main():
+    global playlist_data
     playlist_id = "5LkuQ6ApkqtchiyZzBmh9u"
     u = dict()
     first = 1
 
     while 1:
-        playlist_data = get_pl_details(playlist_id)
+        #playlist_data = get_pl_details(playlist_id)
         if u != playlist_data:
             if not first: print(">> Updating...")
             first=0

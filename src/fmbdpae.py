@@ -868,11 +868,7 @@ def sync_status():
     global sync_in_progress
     return jsonify({"syncInProgress": sync_in_progress})
 
-@app.route('/<path:path>')
-def catch_all(path):
-    if path.startswith('api'):
-        return jsonify({"error": "Not Found"}), 404
-    return send_from_directory(app.static_folder, 'index.html')
+
 
 @app.errorhandler(404)
 def not_found(e):

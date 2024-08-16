@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for, request, jsonify, session, send_from_directory
+from flask import Flask, redirect, url_for, request, jsonify, session, send_from_directory, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import urllib
@@ -15,6 +15,8 @@ import concurrent.futures
 from dateutil.parser import isoparse
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+from flask_cors import CORS
+import time
 
 
 
@@ -32,12 +34,11 @@ credentials_collection = db['credentials']  # New collection for storing credent
 
 app = Flask(__name__, static_folder='./build', static_url_path='/')
 app.secret_key = 'supersecretkey'  # Change this to a more secure key in production
-
+CORS(app, supports_credentials=True)
 
 uri = "mongodb+srv://juanrengifo912:4212@cluster0.6ajkb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-
 # Create a new client and connect to the server
-client = MongoClient(uri)
+client = MongoClient(uri, server_api=ServerApi('1'))
 # Send a ping to confirm a successful connection
 try:
     client.admin.command('ping')
@@ -811,11 +812,32 @@ def authorize_tidal():
     global sess
     tidal_session = tidalapi.Session()
     login, future = tidal_session.login_oauth()
-    import webbrowser as wb
     link = "https://" + login.verification_uri_complete
-    wb.open_new_tab(link)
     print("Open the URL to log in", link)
-    future.result()
+
+    # Return the link in the response
+    link_response = {"url": link}
+
+    # Automatically notify the host to open the URL (assuming host IP is known)
+    host_url = "http://host.docker.internal:5001/open-url"  # Adjust the host address and port
+    try:
+        requests.post(host_url, json=link_response)
+    except Exception as e:
+        print(f"Failed to notify the host: {e}")
+
+    # Delay to ensure the browser has time to open
+    time.sleep(5)
+
+    # Continue with the flow and handle the future result
+    try:
+        future.result()
+    except tidalapi.Session.TimeoutError as e:
+        log_error(f"Tidal login timeout: {e}", session.get('user_id'))
+        return jsonify({"error": "Timeout during Tidal login. Please try again."}), 500
+    except Exception as e:
+        log_error(f"Error during Tidal login: {e}", session.get('user_id'))
+        return jsonify({"error": "Unexpected error during Tidal login"}), 500
+
     session['tidal_access_token'] = tidal_session.access_token
     session['tidal_refresh_token'] = tidal_session.refresh_token
     session['tidal_expires_at'] = tidal_session.expiry_time
@@ -824,8 +846,6 @@ def authorize_tidal():
         "refresh_token": tidal_session.refresh_token,
         "expires_at": tidal_session.expiry_time
     }}
-
-    
 
     return redirect('/soundcloud-authorize')
 
@@ -1188,9 +1208,16 @@ def register():
 username = ""
 
 # User login route
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['POST', 'OPTIONS'])
 def login():
     global sess, username
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        return response
     data = request.json
     username = data.get("username")
     password = data.get("password")
@@ -1240,5 +1267,5 @@ def logout():
 
     return jsonify({"message": "Logged out successfully"}), 200
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
