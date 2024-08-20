@@ -181,7 +181,7 @@ def validate_playlists():
     end_date = isoparse(filter_end_date) if filter_end_date else None
 
     # Fetch playlists from session
-    playlists = sess.get('playlists', {}).get('items', [])
+    playlists = sess.get('playlists', {})
 
     reference_tracks = None
     if filter_playlist_id:
@@ -728,7 +728,7 @@ def spotify_callback():
         }
         user_profile_url = "https://api.spotify.com/v1/me"
         user_response = requests.get(user_profile_url, headers=headers)
-
+        print(user_response)
         try:
             user_info = user_response.json()
         except requests.exceptions.JSONDecodeError as e:
@@ -736,6 +736,8 @@ def spotify_callback():
             return jsonify({"error": "Failed to retrieve user information", "details": str(e)}), 500
 
         if 'id' not in user_info:
+            print("HERE")
+            print(user_info)
             print("User ID not found in user info:", user_info)
             return jsonify({"error": "Failed to retrieve user information"}), 500
 
@@ -804,7 +806,6 @@ def youtube_callback():
             "expires_in": session['youtube_expires_in']
         }
 
-        print(youtube_oauth)
         sess["youtube"] = {"oauth": youtube_oauth}
         
         if user_id:
@@ -935,7 +936,6 @@ def callback():
         "refresh_token": refresh_token,
     }}
 
-    print(sess["soundcloud"])
 
     user_profile = sess.get("spotify", {})
     spotify_username = sess["spotify"]["user_id"] if "user_id" in sess["spotify"] else ""
@@ -960,8 +960,11 @@ def get_user_sess(user_id):
 @app.route('/api/user-id', methods=['GET'])
 def get_user_id():
     user_id = session.get('user_id', None)
-    if user_id:
-        return jsonify({"user_id": user_id})
+    username = session.get('username', None)
+    if user_id and username:
+        user = user_collection.find_one({"_id": ObjectId(user_id)})
+        if user:
+            return jsonify({"user_id": user_id, "is_admin": user.get('is_admin', False)})
     return jsonify({"error": "User not logged in"}), 401
 
 @app.route('/tidal-callback')
@@ -1281,7 +1284,7 @@ def login():
     session['user_id'] = str(user["_id"])
     session['username'] = username
     sess['username'] = username
-    return jsonify({"message": "Logged in successfully"}), 200
+    return jsonify({"message": "Logged in successfully", "user_id": str(user["_id"]), "is_admin": user.get("is_admin", False)}), 200
 
 # User logout route
 @app.route('/logout', methods=['POST'])

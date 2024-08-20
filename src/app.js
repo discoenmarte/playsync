@@ -50,6 +50,7 @@ const App = () => {
   const [filterPlaylistName, setFilterPlaylistName] = useState('');
   const [filterStartDate, setFilterStartDate] = useState(null);
   const [filterEndDate, setFilterEndDate] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false); // Add this line to initialize state for the checkbox
   
 const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
@@ -91,12 +92,13 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
           if (response.ok) {
             const data = await response.json();
             setUserId(data.user_id);
+            setIsAdmin(data.is_admin); // Set the isAdmin state
             await fetchPlaylists();
           } else {
-            console.error("Failed to fetch user ID", response);
+            console.error("Failed to fetch user data", response);
           }
         } catch (err) {
-          console.error("Error fetching user ID:", err);
+          console.error("Error fetching user data:", err);
         }
       };
 
@@ -116,12 +118,13 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ username, password }),
-        credentials: 'include'  // Asegúrate de incluir las credenciales
+        credentials: 'include'  // Ensure to include the credentials
       });
       if (response.ok) {
         const data = await response.json();
         setAuthorized(true);
         setUserId(data.user_id);
+        setIsAdmin(data.is_admin); // Ensure this is set correctly
         setAuthError('');
         navigate('/playlists');
       } else {
@@ -140,8 +143,8 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ username, password }),
-        credentials: 'include'  // Asegúrate de incluir las credenciales
+        body: JSON.stringify({ username, password, is_admin: isAdmin }),  // Include isAdmin here
+        credentials: 'include'  // Ensure to include the credentials
       });
       if (response.ok) {
         await handleLogin();
@@ -429,32 +432,43 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
   };
 
   const handleFetchValidations = async () => {
-    const url = new URL('http://localhost:5000/api/validate-playlists', window.location.origin);
-    // Add the filter parameters to the URL
-    url.searchParams.append('description_length', filterDescriptionLength);
-    if (filterUsername) {
-      url.searchParams.append('filter_username', filterUsername);
-    }
-    if (filterPlaylistId) {
-      url.searchParams.append('filter_playlist_id', filterPlaylistId);
-    }
-    if (filterStartDate) {
-      url.searchParams.append('start_date', filterStartDate.toISOString());
-    }
-    if (filterEndDate) {
-      url.searchParams.append('end_date', filterEndDate.toISOString());
-    }
+    try {
+      const url = new URL('http://localhost:5000/api/validate-playlists', window.location.origin);
+      // Add the filter parameters to the URL
+      url.searchParams.append('description_length', filterDescriptionLength);
+      if (filterUsername) {
+        url.searchParams.append('filter_username', filterUsername);
+      }
+      if (filterPlaylistId) {
+        url.searchParams.append('filter_playlist_id', filterPlaylistId);
+      }
+      if (filterStartDate) {
+        url.searchParams.append('start_date', filterStartDate.toISOString());
+      }
+      if (filterEndDate) {
+        url.searchParams.append('end_date', filterEndDate.toISOString());
+      }
   
-    const response = await fetch(url, {
-      credentials: 'include'  // Asegúrate de incluir las credenciales
-    });
-    const data = await response.json();
+      const response = await fetch(url, {
+        credentials: 'include'  // Ensure to include the credentials
+      });
+      const data = await response.json();
   
-    // Extract and set distinct owners
-    const distinctOwners = Array.from(new Set(data.valid_playlists.concat(data.invalid_playlists).map(pl => pl.owner.display_name)));
-    setOwners(distinctOwners);
+      // Set default values for valid_playlists and invalid_playlists if not provided
+      const validPlaylists = data.valid_playlists || [];
+      const invalidPlaylists = data.invalid_playlists || [];
   
-    setValidatedPlaylists(data);
+      // Extract and set distinct owners
+      const distinctOwners = Array.from(new Set(validPlaylists.concat(invalidPlaylists).map(pl => pl.owner.display_name)));
+      setOwners(distinctOwners);
+  
+      setValidatedPlaylists({
+        valid_playlists: validPlaylists,
+        invalid_playlists: invalidPlaylists
+      });
+    } catch (err) {
+      console.error("Error fetching validated playlists:", err);
+    }
   };
 
   const handleCloseValidationModal = () => setShowValidationModal(false);
@@ -470,7 +484,7 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
     return (
       <div className="auth-container">
         <div className="auth-box">
-          <h2>Login</h2>
+          <h2>Play-Sync</h2>
           <div className="auth-input-wrapper">
             <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" />
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" />
@@ -533,7 +547,7 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
             <button onClick={handleShowAuthorizedAccounts} className="button">Show Authorized Accounts</button>
             <button onClick={handleShowErrorLogs} className="button">Show Error Logs</button>
             <button onClick={handleShowValidationModal} className="button">Show Validated Playlists</button>
-            {username === 'admin' && (
+            {isAdmin && (
               <button onClick={() => setIsRegistering(true)} className="button">Register</button>
             )}
           </div>
@@ -835,21 +849,30 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
         </div>
       </div>
       {isRegistering && (
-        <div className="auth-overlay">
-          <div className="auth-box">
-            <span className="auth-close" onClick={handleCloseRegisterModal}>&times;</span>
-            <h2>Register</h2>
-            <div className="auth-input-wrapper">
-              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" />
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" />
+      <div className="auth-overlay">
+        <div className="auth-box">
+          <span className="auth-close" onClick={handleCloseRegisterModal}>&times;</span>
+          <h2>Register</h2>
+          <div className="auth-input-wrapper">
+            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" />
+            {/* Add checkbox for isAdmin */}
+            <div className="admin-checkbox">
+              <input
+                type="checkbox"
+                checked={isAdmin}
+                onChange={(e) => setIsAdmin(e.target.checked)}
+              />
+              <label>Admin</label>
             </div>
-            <div className="auth-button-wrapper">
-              <button onClick={handleRegistration}>Register</button>
-            </div>
-            {authError && <p className="error">{authError}</p>}
           </div>
+          <div className="auth-button-wrapper">
+            <button onClick={handleRegistration}>Register</button>
+          </div>
+          {authError && <p className="error">{authError}</p>}
         </div>
-      )}
+      </div>
+    )}
     </div>
   );
 };
