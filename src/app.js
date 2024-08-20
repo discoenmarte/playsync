@@ -61,6 +61,24 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
       setAuthorized(true);
       fetchPlaylists();
     }
+  
+    const fetchUsernames = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/users', {
+          credentials: 'include'  
+        });
+        if (response.ok) {
+          const usernamesData = await response.json();
+          setOwners(usernamesData.map(user => user.username));
+        } else {
+          console.error("Failed to fetch usernames", response);
+        }
+      } catch (err) {
+        console.error("Error fetching usernames:", err);
+      }
+    };
+  
+    fetchUsernames();
   }, [navigate]);
 
   useEffect(() => {
@@ -139,7 +157,7 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
 
   const handleLogout = async () => {
     try {
-      await fetch('/logout', { 
+      await fetch('http://localhost:5000/logout', { 
         method: 'POST',
         credentials: 'include'  // Asegúrate de incluir las credenciales
       });
@@ -539,82 +557,85 @@ const sortedErrorLogs = errorLogs.sort((a, b) => new Date(b.timestamp) - new Dat
             </>
           )}
           {showHistory && (
-            <div className="history-modal">
-              <div className="history-modal-content">
-                <span className="history-close" onClick={handleCloseHistory}>&times;</span>
-                <h2>Migration History</h2>
-                <div className="filter-container">
-                  <input
-                    type="text"
-                    placeholder="Filter by username"
-                    value={filterUsername}
-                    onChange={e => setFilterUsername(e.target.value)}
-                    className="filter-input"
-                  />
-                  <select
-                    className="filter-input"
-                    value={filterPlaylistName}
-                    onChange={e => setFilterPlaylistName(e.target.value)}
-                  >
-                    <option value="">All Playlists</option>
-                    {Array.from(new Set(history.map(event => event.playlist_name))).map((playlistName, index) => (
-                      <option key={index} value={playlistName}>{playlistName}</option>
-                    ))}
-                  </select>
-                  <div className="date-picker-container">
-                    <DatePicker
-                      selected={startDate}
-                      onChange={date => setStartDate(date)}
-                      selectsStart
-                      startDate={startDate}
-                      endDate={endDate}
-                      dateFormat="yyyy/MM/dd"
-                      className="filter-input"
-                      placeholderText="Start Date"
-                    />
-                    <DatePicker
-                      selected={endDate}
-                      onChange={date => setEndDate(date)}
-                      selectsEnd
-                      startDate={startDate}
-                      endDate={endDate}
-                      dateFormat="yyyy/MM/dd"
-                      className="filter-input"
-                      placeholderText="End Date"
-                    />
-                  </div>
-                </div>
-                <div className="table-container">
-                  <table className="history-table">
-                    <thead>
-                      <tr>
-                        <th>Username</th>
-                        <th>Timestamp</th>
-                        <th>Playlist Name</th>
-                        <th>Profile Name</th>
-                        <th>Platform</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedHistory.map((event, index) => (
-                        <tr key={index}>
-                          <td>{event.username || 'N/A'}</td>
-                          <td>{formatDate(event.timestamp)}</td>
-                          <td className="truncated-cell" title={event.playlist_name}>
-                            <a href={`https://open.spotify.com/playlist/${event.playlist_id}`} target="_blank" rel="noopener noreferrer">
-                              {event.playlist_name}
-                            </a>
-                          </td>
-                          <td className="truncated-cell" title={event.profile_name}>{event.profile_name}</td>
-                          <td>{event.platform}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
+  <div className="history-modal">
+    <div className="history-modal-content">
+      <span className="history-close" onClick={handleCloseHistory}>&times;</span>
+      <h2>Migration History</h2>
+      <div className="filter-container">
+        <select
+          className="filter-input"
+          value={filterUsername}
+          onChange={e => setFilterUsername(e.target.value)}
+        >
+          <option value="">All Profiles</option>
+          {owners.map((owner, index) => (
+            <option key={index} value={owner}>{owner}</option>
+          ))}
+        </select>
+        <select
+          className="filter-input"
+          value={filterPlaylistName}
+          onChange={e => setFilterPlaylistName(e.target.value)}
+        >
+          <option value="">All Playlists</option>
+          {Array.from(new Set(history.map(event => event.playlist_name))).map((playlistName, index) => (
+            <option key={index} value={playlistName}>{playlistName}</option>
+          ))}
+        </select>
+        <div className="date-picker-container">
+          <DatePicker
+            selected={startDate}
+            onChange={date => setStartDate(date)}
+            selectsStart
+            startDate={startDate}
+            endDate={endDate}
+            dateFormat="yyyy/MM/dd"
+            className="filter-input date-picker-container"
+            placeholderText="Start Date"
+          />
+          <DatePicker
+            selected={endDate}
+            onChange={date => setEndDate(date)}
+            selectsEnd
+            startDate={startDate}
+            endDate={endDate}
+            dateFormat="yyyy/MM/dd"
+            className="filter-input date-picker-container"
+            placeholderText="End Date"
+          />
+        </div>
+      </div>
+      <div className="table-container">
+        <table className="history-table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Timestamp</th>
+              <th>Playlist Name</th>
+              <th>Profile Name</th>
+              <th>Platform</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedHistory.map((event, index) => (
+              <tr key={index}>
+                <td>{event.username || 'N/A'}</td>
+                <td>{formatDate(event.timestamp)}</td>
+                <td className="truncated-cell" title={event.playlist_name}>
+                  <a href={`https://open.spotify.com/playlist/${event.playlist_id}`} target="_blank" rel="noopener noreferrer">
+                    {event.playlist_name}
+                  </a>
+                </td>
+                <td className="truncated-cell" title={event.profile_name}>{event.profile_name}</td>
+                <td>{event.platform}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+)}
           {showErrorLogs && (
             <div className="history-modal">
               <div className="history-modal-content">

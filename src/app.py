@@ -17,20 +17,9 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from flask_cors import CORS
 import time
+from collections import defaultdict
 
 
-
-
-"""
-# MongoDB setup
-mongo_client = MongoClient('mongodb://localhost:27017/')
-db = mongo_client['migration_db']
-migration_collection = db['migration_history']
-sess_collection = db['sess_collection']
-error_logs_collection = db['error_logs']
-user_collection = db['users']  # New collection for storing user data
-credentials_collection = db['credentials']  # New collection for storing credentials
-"""
 
 app = Flask(__name__, static_folder='./build', static_url_path='/')
 app.secret_key = 'supersecretkey'  # Change this to a more secure key in production
@@ -107,6 +96,9 @@ sync_total_tidal = 0
 sync_total_soundcloud = 0
 last_synced_index = 0  # Default to start from the beginning
 sess = {"spotify": {"get_uri":dict()}, "tidal": dict(), "youtube":dict(), "soundcloud":dict(), "manual_playlists": []}
+
+# Add this global variable to store playlists for all accounts
+all_accounts_playlists = defaultdict(lambda: {"names": [], "uris": []})
 
 import concurrent.futures
 
@@ -344,8 +336,11 @@ def fetch_sess_by_user(user_id, spotify_username=None):
         print(f"Error fetching sess for user {user_id}: {e}")
         return []
 
+from bson import ObjectId
+
 def log_migration(event):
     try:
+        event["_id"] = ObjectId()  # Generate a new unique ObjectId for each log entry
         migration_collection.insert_one(event)
     except pymongo.errors.DuplicateKeyError as e:
         print(f"Duplicate entry error in logging migration: {e}")
@@ -385,20 +380,15 @@ def get_migration_history():
     if not username:
         return jsonify({"status": "failure", "error": "Not logged in"}), 401
 
-    """
-    if not user_id:
-        return jsonify({"error": "User not logged in"}), 401
-    history = fetch_migration_history(user_id)
-    """
     history = None
     if username == 'admin':
         history = list(migration_collection.find({}))[::-1]
     else:
         history = list(migration_collection.find({"username": username}))[::-1]
     
-        
     for event in history:
-        event["_id"] = str(event["_id"])
+        event["_id"] = str(event["_id"])  # Ensure the `_id` field is JSON serializable
+
     return jsonify(history), 200
 
 def get_spotify_token():
@@ -563,13 +553,16 @@ def backend_sync_task(user_id):
     global sync_total_youtube, sync_total_tidal, sync_total_soundcloud, sess, playlists, last_synced_index, username
 
     sync_in_progress = True
+    # Filter the playlists according to defined limits
     sync_total_youtube = min(len(playlists), 20)
     sync_total_tidal = min(len(playlists), 2000)
     sync_total_soundcloud = min(len(playlists), 20)
-
+    
     def create_or_update_playlist(platform, create_or_update_func, pl, oauth, event):
         try:
             create_or_update_func(pl, oauth)
+
+            # Increment the progress counters based on platform
             if platform == "YouTube":
                 with youtube_lock:
                     global sync_progress_youtube
@@ -583,6 +576,7 @@ def backend_sync_task(user_id):
                     global sync_progress_tidal
                     sync_progress_tidal += 1
 
+            # Log the successful sync for the platform
             event["platform"] = platform
             log_migration(event)
             
@@ -596,6 +590,8 @@ def backend_sync_task(user_id):
         futures = []
         for i in range(last_synced_index, len(playlists)):
             pl = playlists[i]
+
+            # Prepare the event for logging
             event = {
                 "playlist_name": pl['name'],
                 "profile_name": sess["spotify"]["user_id"],
@@ -604,17 +600,23 @@ def backend_sync_task(user_id):
                 "username": username,
                 "playlist_id": sess["spotify"]["get_uri"][pl["name"]]
             }
+
+            # Create/update playlists on YouTube and SoundCloud
             if i < 20:
-                futures.append(executor.submit(create_or_update_playlist, "YouTube", create_or_update_youtube_playlist, pl, "oauth.json", event))
+                futures.append(executor.submit(create_or_update_playlist, "YouTube", create_or_update_youtube_playlist, pl, "youtube_oauth.json", event))
                 futures.append(executor.submit(create_or_update_playlist, "SoundCloud", create_or_update_soundcloud_playlist, pl, sess["soundcloud"]["oauth"], event))
 
+            # Create/update playlists on Tidal
             if i < 2000:
                 futures.append(executor.submit(create_or_update_playlist, "Tidal", create_or_update_tidal_playlist, pl, sess["tidal"]["oauth"], event))
 
+            # Update the last synced index
             last_synced_index = i + 1
 
+        # Wait for all futures to complete
         concurrent.futures.wait(futures)
 
+    # Reset sync variables
     sync_in_progress = False
     sync_progress_youtube = 0
     sync_progress_tidal = 0
@@ -759,7 +761,8 @@ def spotify_callback():
 
 @app.route('/youtube-authorize')
 def youtube_authorize():
-    scope = "https://www.googleapis.com/auth/youtube.readonly"
+    scope = "https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.upload"
+
     params = {
         'client_id': YOUTUBE_CLIENT_ID,
         'response_type': 'code',
@@ -773,6 +776,7 @@ def youtube_authorize():
 
 @app.route('/youtube-callback')
 def youtube_callback():
+    scope = "https://www.googleapis.com/auth/youtube"
     if 'error' in request.args:
         return jsonify({"error": request.args['error']})
     if 'code' in request.args:
@@ -781,27 +785,33 @@ def youtube_callback():
             'grant_type': 'authorization_code',
             'redirect_uri': YOUTUBE_REDIRECT_URI,
             'client_id': YOUTUBE_CLIENT_ID,
-            'client_secret': YOUTUBE_CLIENT_SECRET
+            'client_secret': YOUTUBE_CLIENT_SECRET,
+            'scope': scope
         }
         response = requests.post(YOUTUBE_TOKEN_URL, data=req_body)
         token_info = response.json()
         session['youtube_access_token'] = token_info['access_token']
         session['youtube_refresh_token'] = token_info.get('refresh_token')
-        session['youtube_expires_at'] = datetime.now().timestamp() + token_info['expires_in']
-        session['youtube_expires_in'] = token_info["expires_in"]
+        session['youtube_expires_at'] = int(datetime.now().timestamp() + token_info['expires_in'])
+        session['youtube_expires_in'] = int(token_info["expires_in"])
         user_id = session.get('user_id')
         youtube_oauth = {
-            "scope": "https://www.googleapis.com/auth/youtube",
+            "scope": scope,
             "token_type": "Bearer",
             "access_token": session['youtube_access_token'],
             "refresh_token": session['youtube_refresh_token'],
-            "expires_at": session['youtube_expires_at'],
+            "expires_at": int(session['youtube_expires_at']),
             "expires_in": session['youtube_expires_in']
         }
+
+        print(youtube_oauth)
         sess["youtube"] = {"oauth": youtube_oauth}
         
         if user_id:
             store_sess(user_id, session['spotify_username'], sess)
+
+        with open('src/youtube_oauth.json', 'w') as fp:
+            json.dump(youtube_oauth, fp)
 
         with open('youtube_oauth.json', 'w') as fp:
             json.dump(youtube_oauth, fp)
@@ -1032,26 +1042,58 @@ def fetch_playlists_for_user(user_id, spotify_username):
             return jsonify({"error": "Failed to fetch playlists"}), response.status_code
 
         playlists = response.json()
-        #session["playlists"] = playlists
-        sess["playlists"] = playlists
-        playlist_names = [playlist['name'] for playlist in playlists['items']]
-        playlist_uris = [playlist['uri'].split(":")[-1] for playlist in playlists['items']]
-        sess["spotify"]["playlists_uri"] = playlist_uris
-        sess["spotify"]["playlist_names"] = playlist_names
+        fetched_playlist_names = [playlist['name'] for playlist in playlists['items']]
+        fetched_playlist_uris = [playlist['uri'].split(":")[-1] for playlist in playlists['items']]
+
+        # Merge with existing playlists
+        existing_playlist_names = sess["spotify"].get("playlist_names", [])
+        existing_playlist_uris = sess["spotify"].get("playlists_uri", [])
         
-        return jsonify({"names": playlist_names, "uris": playlist_uris})
+        combined_names = list(dict.fromkeys(existing_playlist_names + fetched_playlist_names))
+        combined_uris = list(dict.fromkeys(existing_playlist_uris + fetched_playlist_uris))
+
+        sess["spotify"]["playlists_uri"] = combined_uris
+        sess["spotify"]["playlist_names"] = combined_names
+
+        return jsonify({"names": combined_names, "uris": combined_uris})
     except Exception as e:
         print(f"Error fetching playlists: {e}")
         return jsonify({"error": "Internal server error"}), 500
+    
+@app.route('/api/all-playlists', methods=['GET'])
+def get_all_playlists():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "User not logged in"}), 401
+    
+    combined_names = []
+    combined_uris = []
+    for account_playlists in all_accounts_playlists.values():
+        combined_names.extend(account_playlists["names"])
+        combined_uris.extend(account_playlists["uris"])
+    
+    # Remove duplicates while preserving order
+    combined_names = list(dict.fromkeys(combined_names))
+    combined_uris = list(dict.fromkeys(combined_uris))
+    
+    return jsonify({"names": combined_names, "uris": combined_uris})
+    
 
+# Modify the remove_user_session function to remove playlists when an account is removed
 @app.route('/api/remove-user/<user_id>/<spotify_username>', methods=['DELETE'])
 def remove_user_session(user_id, spotify_username):
+    global all_accounts_playlists
     if session.get('user_id') != user_id:
         return jsonify({"error": "Unauthorized access"}), 401
     try:
         delete_result = sess_collection.delete_many({"user_id": user_id, "spotify_username": spotify_username})
         if delete_result.deleted_count == 0:
             return jsonify({"error": "User session not found"}), 404
+        
+        # Remove playlists for the removed account
+        if spotify_username in all_accounts_playlists:
+            del all_accounts_playlists[spotify_username]
+        
         return jsonify({"status": "success", "message": "User session removed"})
     except Exception as e:
         print(f"Error removing user session: {e}")
@@ -1061,49 +1103,55 @@ def remove_user_session(user_id, spotify_username):
 def get_playlists():
     global sess
     user_id = session.get('user_id')
-    spotify_username = session.get('spotify_username')
 
-    if not user_id or not spotify_username:
-        return jsonify({"error": "User ID or Spotify username not found in session"}), 401
+    if not user_id:
+        return jsonify({"error": "User ID not found in session"}), 401
 
-    user_sess = sess_collection.find_one({"user_id": user_id, "spotify_username": spotify_username})
+    user_sessions = list(sess_collection.find({"user_id": user_id}))
 
-    if not user_sess:
+    if not user_sessions:
         return jsonify({"error": "User session data not found"}), 404
 
-    sess = user_sess.get('sess', {})
-    spotify_sess = sess.get('spotify', {})
+    combined_playlists = []
+    combined_playlist_uris = []
 
-    if not spotify_sess:
-        return jsonify({"error": "Spotify session data not found, reauthorization required"}), 401
+    for user_sess in user_sessions:
+        sess = user_sess.get('sess', {})
+        spotify_sess = sess.get('spotify', {})
 
-    access_token = spotify_sess.get('access_token')
-    expires_at = spotify_sess.get('expires_at')
+        if not spotify_sess:
+            continue
 
-    if expires_at is None:
-        return jsonify({"error": "Token expiration time is missing, reauthorization required"}), 401
+        access_token = spotify_sess.get('access_token')
+        expires_at = spotify_sess.get('expires_at')
 
-    if datetime.now().timestamp() > expires_at:
-        return redirect('/refresh-token')
+        if datetime.now().timestamp() > expires_at:
+            continue  # Token expired, skip this session
 
-    headers = {'Authorization': f"Bearer {access_token}"}
-    response = requests.get(API_BASE_URL + 'me/playlists', headers=headers)
+        headers = {'Authorization': f"Bearer {access_token}"}
+        response = requests.get(API_BASE_URL + 'me/playlists', headers=headers)
 
-    if response.status_code == 401:
-        return redirect('/refresh-token')
+        if response.status_code == 401:
+            continue  # Token expired, skip this session
 
-    if response.status_code != 200:
-        return jsonify({"error": "Failed to fetch playlists"}), response.status_code
+        if response.status_code != 200:
+            continue  # Failed to fetch playlists, skip this session
 
-    playlists = response.json()
-    playlist_names = [playlist['name'] for playlist in playlists['items']]
-    playlist_uris = [playlist['uri'].split(":")[-1] for playlist in playlists['items']]
-    sess["playlists"] = playlists
-    #session["playlists"] = playlists
-    session["playlists_uri"] = playlist_uris
-    sess["spotify"]["playlists_uri"] = playlist_uris
-    sess["spotify"]["playlist_names"] = playlist_names
-    return playlists
+        playlists = response.json()
+        combined_playlists.extend(playlist for playlist in playlists.get('items', []))
+        combined_playlist_uris.extend(playlist['uri'].split(":")[-1] for playlist in playlists.get('items', []))
+
+    # Remove duplicates while preserving order
+    combined_playlists = list({playlist['id']: playlist for playlist in combined_playlists}.values())
+    combined_playlist_uris = list(dict.fromkeys(combined_playlist_uris))
+
+    # Optionally, store the combined session details
+    sess["playlists"] = combined_playlists
+    session["playlists_uri"] = combined_playlist_uris
+    sess["spotify"]["playlists_uri"] = combined_playlist_uris
+    sess["spotify"]["playlist_names"] = [playlist['name'] for playlist in combined_playlists]
+
+    return jsonify({'items': combined_playlists})
 
 @app.route('/refresh-token')
 def refresh_token():
@@ -1174,6 +1222,7 @@ def sync_status():
 
 @app.route('/<path:path>')
 def catch_all(path):
+    print("HERE ", path)
     if path.startswith('api'):
         return jsonify({"error": "Not Found"}), 404
     return send_from_directory(app.static_folder, 'index.html')

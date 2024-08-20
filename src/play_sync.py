@@ -100,49 +100,79 @@ def search_song(song_name, artist_name):
         return search_results[0]['videoId']
     return None
 
+import requests
+from ytmusicapi import YTMusic
+import functools
+
 def get_existing_playlist_id(ytmusic, playlist_name):
-    playlists = ytmusic.get_library_playlists()
-    for playlist in playlists:
-        if playlist['title'].lower() == playlist_name.lower():
-            return playlist['playlistId']
+    try:
+        print("Fetching library playlists...")
+        playlists = ytmusic.get_library_playlists()
+        for playlist in playlists:
+            if playlist['title'].lower() == playlist_name.lower():
+                return playlist['playlistId']
+    except Exception as e:
+        print(f"Error fetching library playlists: {e}")
     return None
 
-
-
-
-
 def create_or_update_youtube_playlist(playlist_json, oauth_path):
-    print(">> YTMUSIC")
-    ytmusic = YTMusic(oauth_path)
-    playlist_name = playlist_json['name']
-    playlist_description = playlist_json['description']
-    visibility = 'PUBLIC' if playlist_json.get('visibility', 'public').lower() == 'public' else 'PRIVATE'
+    try:
+        print(">> Initializing YTMusic with OAuth credentials...")
+        
+        # Setting up a requests session with a custom timeout
+        s = requests.Session()
+        s.request = functools.partial(s.request, timeout=10)  # Set a 10-second timeout
+        
+        # Initialize YTMusic instance with the provided OAuth path and session
+        ytmusic = YTMusic(auth=oauth_path, requests_session=s)
+        print("YTMusic initialized successfully.")
+        
+        playlist_name = playlist_json['name']
+        playlist_description = playlist_json['description']
+        visibility = 'PUBLIC' if playlist_json.get('visibility', 'public').lower() == 'public' else 'PRIVATE'
+        
+        # Log the input playlist details
+        print(f"Playlist details: Name={playlist_name}, Description={playlist_description}, Visibility={visibility}")
+        
+        # Check if the playlist already exists
+        playlist_id = get_existing_playlist_id(ytmusic, playlist_name)
+        
+        if playlist_id:
+            print(f">> Updating existing playlist: {playlist_name}")
+        else:
+            print(f">> Creating new playlist: {playlist_name}")
+            playlist_id = ytmusic.create_playlist(playlist_name, playlist_description, privacy_status=visibility)
+        
+        # Add songs to the playlist
+        track_ids = []
+        for track in playlist_json['tracks']:
+            song_name, artist_name = track.split(' by ')
+            search_results = ytmusic.search(f"{song_name} {artist_name}", filter='songs')
+            
+            if search_results and isinstance(search_results, list):
+                # Assuming the first result is the most relevant
+                first_result = search_results[0]
+                video_id = first_result.get('videoId')
+                if video_id:
+                    track_ids.append(video_id)
+                else:
+                    print(f">> No videoId found for {song_name} by {artist_name}.")
+            else:
+                print(f">> No search results found for {song_name} by {artist_name}.")
+        
+        if track_ids:
+            ytmusic.add_playlist_items(playlist_id, track_ids)
+            print(f">> Playlist '{playlist_name}' updated successfully with {len(track_ids)} tracks.")
+        else:
+            print("No tracks were added to the playlist.")
+        
+        return playlist_id
     
-    # Check if the playlist already exists
-    playlist_id = get_existing_playlist_id(ytmusic, playlist_name)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
 
-    if playlist_id:
-        print(f">> Updating existing playlist: {playlist_name}")
-    else:
-        print(f">> Creating new playlist: {playlist_name}")
-        playlist_id = ytmusic.create_playlist(playlist_name, playlist_description, privacy_status=visibility)
 
-    # Add songs to the playlist
-    track_ids = []
-    for track in playlist_json['tracks']:
-        song_name, artist_name = track.split(' by ')
-        search_results = ytmusic.search(f">> {song_name} {artist_name}", filter='songs')
-        if search_results:
-            video_id = search_results[0]['videoId']
-            track_ids.append(video_id)
-
-    if track_ids:
-        ytmusic.add_playlist_items(playlist_id, track_ids)
-        print(f">> Playlist '{playlist_name}' updated successfully with {len(track_ids)} tracks.")
-    else:
-        print("No tracks were added to the playlist.")
-
-    return playlist_id
 
 
 def download_image(image_url):
@@ -283,10 +313,10 @@ def create_or_update_tidal_playlist(playlist_data, header):
             break
     
     if playlist:
-        print(f">> Updating existing playlist: {playlist_data['name']}")
+        print(f">> Updating TIDALLLLL existing playlist: {playlist_data['name']}")
         playlist.description = playlist_data['description']
     else:
-        print(f">> Creating new playlist: {playlist_data['name']}")
+        print(f">> Creating TIDALLLLL new playlist: {playlist_data['name']}")
         playlist = user.create_playlist(
             playlist_data['name'], 
             playlist_data['description']
@@ -307,9 +337,9 @@ def create_or_update_tidal_playlist(playlist_data, header):
     
     if track_ids:
         playlist.add(track_ids)
-        print(f">> Playlist '{playlist_data['name']}' updated with {len(track_ids)} tracks.")
+        print(f">> Playlist TIDALLLLL '{playlist_data['name']}' updated with {len(track_ids)} tracks.")
     else:
-        print("No tracks were added to the playlist.")
+        print("No tracks TIDALLLLL were added to the playlist.")
 
 
 
@@ -340,7 +370,8 @@ def update(playlist_data):#, tidal_headers):
 
 def main():
     global playlist_data
-    playlist_id = "5LkuQ6ApkqtchiyZzBmh9u"
+    create_or_update_youtube_playlist(playlist_data, "youtube_oauth.json")
+    """playlist_id = "5LkuQ6ApkqtchiyZzBmh9u"
     u = dict()
     first = 1
 
@@ -352,7 +383,7 @@ def main():
             update(playlist_data)
             u = playlist_data
         sleep(5)
-        print(">> idle...")
+        print(">> idle...")"""
 
 #main()
         
